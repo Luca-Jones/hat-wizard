@@ -6,6 +6,20 @@ const levels =  [
 		 "" , "tree" , "animate" , "animate" , "animate" , 
 		 "" , "water" , "" , "" , "" , 
 		 "" , "fenceup" , "" , "horseup" , "" 
+		],
+		//level 1
+		["flag" , "tree" , "" , "rider" , "" ,
+		 "" , "rock" , "" ,"water" , "" ,
+		 "fenceside" , "animate" , "animate" , "animate bridge" , "animate" , 
+		 "" , "water" , "" , "water" , "" , 
+		 "" , "" , "" , "water" , "horseup" 
+		],
+		//level 2
+		["fenceup" , "fenceside" , "fenceside" , "fenceside" , "fenceside" ,
+		 "" , "" , "fenceup" ,"" , "fenceup" ,
+		 "fenceup" , "" , "" , "fenceside" , "fenceup" , 
+		 "fenceup" , "" , "" , "" , "fenceup" , 
+		 "fenceup" , "" , "horseup" , "rider" , "fenceup" 
 		]
 		]; // end of levels
 
@@ -13,7 +27,7 @@ const gridBoxes = document.querySelectorAll("#gameBoard div");
 const noPassObstacles = ["rock" , "tree" , "water"];
 var currentLevel = 0;	// starting level
 var riderOn = false; // is the rider on?
-var currentLocationOfHorse =24;
+var currentLocationOfHorse = 0;
 var currentAnimation;	// allows 1 animation per level
 var widthOfBoard = 5;
 
@@ -23,7 +37,10 @@ window.addEventListener("load" , function () {
 });
 
 // move horse
-window.addEventListener("keydown" , function (e) {
+window.addEventListener("keydown" , getKey); // event listener
+
+// get the key from user
+function getKey(e) {
 	switch (e.keyCode) {
 		
 		case 37:// left arrow
@@ -47,7 +64,7 @@ window.addEventListener("keydown" , function (e) {
 			} // if
 			break;
 	} // switch
-}); // event listener
+} // getKey
 
 //try to move horse
 function tryToMove(direction) {
@@ -59,13 +76,12 @@ function tryToMove(direction) {
 	let oldClassName = gridBoxes[oldLocation].className;
 	
 	let nextLocation = 0; // location we wish to move to
-	let nextClass = ""    // class of location we wish to move to
+	let nextClass = "";    // class of location we wish to move to
 	
 	let nextLocation2 = 0;
-	let nextClass2 = "" 
+	let nextClass2 = "" ;
 	
 	let newClass = "";    // new class to switch to if move successful
-	
 	
 	switch (direction) {
 		case "left":
@@ -91,41 +107,82 @@ function tryToMove(direction) {
 	if (!riderOn && nextClass.includes("fence")) { return; }
 	
 	// if there is a fence, move two spaces with animation
-	
 	if (nextClass.includes("fence")) {
 		
 		if (riderOn) {
 			gridBoxes[currentLocationOfHorse].className = "";
 			oldClassName = gridBoxes[nextLocation].className;
 			
+			// if the horse isn't jumping in the right direction, don't move
+			if ((direction == "left" || direction == "right") && nextClass.includes("side")) {
+				gridBoxes[currentLocationOfHorse].classList.add("horserider" + direction);
+				console.log(newClass + currentLocationOfHorse);
+				return;
+			} else if ((direction == "up" || direction == "down") && nextClass.includes("up")) {
+				gridBoxes[currentLocationOfHorse].classList.add("horserider" + direction);
+				console.log(newClass + currentLocationOfHorse + gridBoxes[currentLocationOfHorse].classList);
+				return;
+			} // else if
+			
 			// set values according to direction
-			if (direction == "left") {
+			if (direction == "left" && nextClass.includes("up")) {
 				nextClass = "jumpleft";
 				nextClass2 = "horseriderleft";
 				nextLocation2 = nextLocation - 1;
-			} else if (direction == "right") {
+				if (nextLocation % widthOfBoard == 0) {
+					gridBoxes[currentLocationOfHorse].classList.add("horserider" + direction);
+					return;
+				} // if
+			} else if (direction == "right" && nextClass.includes("up")) {
 				nextClass = "jumpright";
 				nextClass2 = "horseriderright";
 				nextLocation2 = nextLocation + 1;
-			} else if (direction == "up") {
+				if (nextLocation % widthOfBoard == widthOfBoard - 1) {
+					gridBoxes[currentLocationOfHorse].classList.add("horserider" + direction);
+					return;
+				} // if
+			} else if (direction == "up" && nextClass.includes("side")) {
 				nextClass = "jumpup";
 				nextClass2 = "horseriderup";
 				nextLocation2 = nextLocation - widthOfBoard;
-			} else if (direction == "down") {
+				if (nextLocation - widthOfBoard < 0) {
+					gridBoxes[currentLocationOfHorse].classList.add("horserider" + direction);
+					return;
+				} // if
+			} else if (direction == "down" && nextClass.includes("side")) {
 				nextClass = "jumpdown";
 				nextClass2 = "horseriderdown";
 				nextLocation2 = nextLocation + widthOfBoard;
+				if (nextLocation + widthOfBoard >= widthOfBoard * widthOfBoard) {
+					gridBoxes[currentLocationOfHorse].classList.add("horserider" + direction);
+					return;
+				} // if
 			}
+			
+			// if there is an impassible object, don't move
+			if (noPassObstacles.includes(gridBoxes[nextLocation2].className)) {
+				gridBoxes[currentLocationOfHorse].classList.add("horserider" + direction);
+				return;
+			} // if	
+
+			// if there is an impassible object, don't move
+			if (gridBoxes[nextLocation2].className.includes("fence")) {
+				gridBoxes[currentLocationOfHorse].classList.add("horserider" + direction);
+				return;
+			} // if				
 			
 			// show horse jumping
 			gridBoxes[nextLocation].className = nextClass;
+			
+			// disables eventListener
+			window.removeEventListener("keydown" , getKey);
 			
 			setTimeout(function () {
 				
 				// set jump back to just a fence
 				gridBoxes[nextLocation].className = oldClassName;
 				
-				//update current location of horse to be two spaces past take off
+				// update current location of horse to be two spaces past take off
 				currentLocationOfHorse = nextLocation2;
 				
 				// get class of box after jump
@@ -137,36 +194,21 @@ function tryToMove(direction) {
 				// if next box is a flag, go up a level
 				levelUp(nextClass);
 				
+				// re-enables eventListener
+				window.addEventListener("keydown" , getKey);
+				
 			} , 350);
+			
+			
 			return;
 		} // if riderOn
 		
 	} // if class has fence
 	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	// if there is a rider, add rider
 	if (nextClass == "rider") {
 		riderOn = true;
-	}
+	} // if
 	
 	// if there is a bridge in the old location, keep it
 	if (oldClassName.includes("bridge")) {
@@ -181,7 +223,7 @@ function tryToMove(direction) {
 	
 	// if there is a bridge in the next location, keep it
 	if (gridBoxes[nextLocation].classList.contains("bridge")) {
-		newClass += "bridge";
+		newClass += " bridge";
 	} // if
 	
 	// move 1 spaces
@@ -191,6 +233,7 @@ function tryToMove(direction) {
 	// if it is an enemy
 	if (nextClass.includes("enemy")) {
 		document.getElementById("lose").style.display = "block";
+		window.removeEventListener("keydown" , getKey);
 		return;
 	} // if
 	
@@ -207,10 +250,10 @@ function levelUp(nextClass) {
 		setTimeout(function () {
 			document.getElementById("levelup").style.display = "none";
 			currentLevel++;
-			if(currentLevel != levels.length){
-				loadLevel();
-			} else {
+			if(currentLevel == levels.length){
 				console.log("you beat the game");
+			} else {
+				loadLevel();
 			} // else
 		} , 1000);
 	} // if
@@ -259,6 +302,12 @@ function animateEnemy(boxes , index , direction) {
 			boxes[i].classList.remove("enemyright");		
 		} // if
 	} // for
+	
+	if (boxes[index].className.includes("horse")) {
+		document.getElementById("lose").style.display = "block";
+		window.removeEventListener("keydown" , getKey);
+		return;
+	} // if
 	
 	// moving right
 	if (direction == "right") {
